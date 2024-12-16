@@ -13,6 +13,17 @@ export const useRoomQuery = (roomName, isConnected) => {
   return query;
 };
 
+export const useUserRoomQuery = (userId, isConnected) => {
+  const query = useQuery({
+    queryKey: ['rooms', userId],
+    queryFn: (): Promise<Room> =>
+      axios.get(`/api/rooms/by/${userId}`).then((response) => response.data),
+    refetchInterval: 60000,
+    enabled: isConnected,
+  });
+  return query;
+};
+
 export const useRoomsQuery = () => {
   const query = useQuery({
     queryKey: ['select_rooms'],

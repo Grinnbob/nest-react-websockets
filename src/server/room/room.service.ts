@@ -8,17 +8,18 @@ export class RoomService {
   constructor(private userService: UserService) {}
   private rooms: Room[] = [];
 
-  async addRoom(roomName: Room['name'], hostId: User['userId']): Promise<void> {
+  async addRoom(roomName: Room['name'], hostId: User['userId']): Promise<Room> {
     const hostUser = await this.userService.getUserById(hostId);
     if (hostUser === 'Not Exists') {
       throw 'The host user with which you are attempting to create a new room does not exist';
     }
-    const room = await this.getRoomIndexByName(roomName);
-    if (room === -1) {
-      this.rooms.push(
-        new Room({ name: roomName, host: hostUser, users: [hostUser] }),
-      );
-    }
+    const roomIndex = await this.getRoomIndexByName(roomName);
+    let room: Room;
+    if (roomIndex === -1) {
+      room = new Room({ name: roomName, host: hostUser, users: [hostUser] });
+      this.rooms.push(room);
+    } else room = this.rooms[roomIndex];
+    return room;
   }
 
   async removeRoom(roomName: Room['name']): Promise<void> {
@@ -75,6 +76,16 @@ export class RoomService {
       }
     });
     return filteredRooms;
+  }
+
+  async getRoomByUserId(userId: User['userId']): Promise<Room | undefined> {
+    const filteredRoom = this.rooms.find((room) => {
+      const found = room.users.find((user) => user.userId === userId);
+      if (found) {
+        return found;
+      }
+    });
+    return filteredRoom;
   }
 
   async getFirstInstanceOfUser(

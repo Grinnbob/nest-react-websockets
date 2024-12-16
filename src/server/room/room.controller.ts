@@ -19,4 +19,17 @@ export class RoomController {
     }
     return room;
   }
+
+  @Get('api/rooms/by/:userId')
+  async getRoomByUserId(@Param() params): Promise<Room> {
+    console.log('---here--0-', params);
+
+    const room = await this.roomService.getRoomByUserId(params.userId);
+    if (!room) {
+      throw new NotFoundException();
+    }
+    console.log('---here---', room);
+
+    return room;
+  }
 }

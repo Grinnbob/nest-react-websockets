@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-export const UserIdSchema = z.string().min(1).max(24);
+export const UserIdSchema = z.string().min(1).max(100);
+export const UserIdsSchema = z.array(UserIdSchema);
 
 export const UserNameSchema = z
   .string()
@@ -10,15 +11,15 @@ export const UserNameSchema = z
 export const EmailSchema = z
   .string()
   .min(1, { message: 'Must be at least 1 character.' })
-  .max(16, { message: 'Must be at most 16 characters.' })
+  .max(30, { message: 'Must be at most 30 characters.' })
   .email();
 
 export const MembersNumberSchema = z
   .string()
   .min(1)
-  .max(16)
+  .max(2)
   .transform((n) => parseInt(n))
-  .refine((n) => n > 0, 'Must be > 0')
+  .refine((n) => n > 1, 'Must be > 1')
   .refine((n) => n < 10, 'Must be < 10');
 
 export const MessageSchema = z
@@ -51,6 +52,12 @@ export const UserSchema = z.object({
   socketId: SocketIdSchema,
 });
 
+export const QueueSchema = z.object({
+  userIds: UserIdsSchema,
+  membersNumber: MembersNumberSchema,
+  socketId: SocketIdSchema,
+});
+
 export const ChatMessageSchema = z.object({
   user: UserSchema,
   timeSent: TimeSentSchema,
@@ -68,6 +75,7 @@ export const RoomSchema = z.object({
 export const JoinRoomSchema = z.object({
   user: UserSchema,
   roomName: RoomNameSchema,
+  membersNumber: MembersNumberSchema,
   eventName: EventNameSchema,
 });
 
@@ -98,6 +106,16 @@ export const ChatEventSchema = z
   .args(ChatMessageSchema, ChatEventAckSchema)
   .returns(z.void());
 
+export const RoomNameAckEventSchema = z
+  .function()
+  .args(z.boolean())
+  .returns(z.void());
+
+export const RoomNameEventSchema = z
+  .function()
+  .args(RoomNameSchema, RoomNameAckEventSchema)
+  .returns(z.void());
+
 export const JoinRoomEventAckSchema = z
   .function()
   .args(z.string(), z.boolean())
@@ -117,4 +135,5 @@ export const ClientToServerEventsSchema = z.object({
 export const ServerToClientEventsSchema = z.object({
   chat: ChatEventSchema,
   kick_user: KickUserEventSchema,
+  room_name: RoomNameEventSchema,
 });

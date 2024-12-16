@@ -23,6 +23,7 @@ function Login() {
       sessionStorage.setItem('room', joinRoomSelection);
     } else if (data.roomName) {
       sessionStorage.setItem('room', data.roomName);
+      sessionStorage.setItem('membersNumber', data.membersNumber.toString());
     }
     navigate({ to: '/chat' });
   };
@@ -55,6 +56,7 @@ export const loader = async () => {
   return {
     user: user,
     roomName: sessionStorage.getItem('room'),
+    membersNumber: sessionStorage.getItem('membersNumber'),
   };
 };
 
@@ -62,6 +64,7 @@ type LoginLocationGenerics = MakeGenerics<{
   LoaderData: {
     user: Pick<User, 'userId' | 'userName'>;
     roomName: string;
+    membersNumber: number;
   };
 }>;
 

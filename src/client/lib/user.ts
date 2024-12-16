@@ -1,4 +1,6 @@
-import { User } from '../../shared/interfaces/chat.interface';
+import { Room, User } from '../../shared/interfaces/chat.interface';
+import axios from 'axios';
+import { LoginFormInputs } from '../components/login.form';
 
 export const setUser = ({
   userId,
@@ -29,4 +31,23 @@ export const getUser = () => {
 
 export const generateUserId = (userName: User['userName']) => {
   return Date.now().toLocaleString().concat(userName);
+};
+
+export const generateRoomName = () => {
+  return 'room-' + Math.floor(Math.random() * 100000).toString();
+};
+
+export const handleJoin = async (data: LoginFormInputs) => {
+  try {
+    const response = await axios.post('http://localhost:3003/chat/join', data);
+
+    if (response.data.roomId) {
+      alert(`Joined Room: ${response.data.roomId}`);
+    } else if (response.data.message) {
+      alert(response.data.message);
+    }
+  } catch (error) {
+    console.error('Error joining the chat:', error);
+    alert('Failed to join the chat.');
+  }
 };

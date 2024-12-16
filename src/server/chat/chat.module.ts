@@ -4,6 +4,8 @@ import { RoomModule } from '../room/room.module';
 import { UserModule } from '../user/user.module';
 import { CaslModule } from '../casl/casl.module';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ChatController } from './chat.controller';
+import { ChatService } from './chat.service';
 
 @Module({
   imports: [
@@ -12,6 +14,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     CaslModule,
     ThrottlerModule.forRoot({ limit: 5, ttl: 60 }),
   ],
-  providers: [ChatGateway],
+  controllers: [ChatController],
+  providers: [ChatGateway, ChatService, ChatGateway],
 })
 export class ChatModule {}

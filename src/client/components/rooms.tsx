@@ -26,10 +26,10 @@ export const Rooms = ({
   return (
     <div className="h-full w-full rounded-lg border border-slate-400 bg-gray-800 md:h-1/2">
       <div className="flex justify-between rounded-t-md border border-slate-400 bg-slate-400 p-2">
-        <span>Присоединиться к комнате</span>
-        {selectedRoom && (
+        <span>Активные чаты</span>
+        {/* {selectedRoom && (
           <button onClick={() => selectionHandler('')}>Очистить</button>
-        )}
+        )} */}
       </div>
       <div className="w-full">
         {!isLoading &&
@@ -45,6 +45,7 @@ export const Rooms = ({
               onClick={() => selectionHandler(room.name)}
             >
               {room.name}
+              {` (${room.users.length} собеседника)`}
             </button>
           ))}
         {(isLoading || isDelay) && <Loading />}

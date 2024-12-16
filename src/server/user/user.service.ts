@@ -6,11 +6,12 @@ export class UserService {
   private users: User[] = [];
 
   async addUser(user: User) {
-    const findUser = await this.getUserById(user.userId);
-    if (findUser === 'Not Exists') {
-      const newUser = new User(user);
+    let newUser = await this.getUserById(user.userId);
+    if (newUser === 'Not Exists') {
+      newUser = new User(user);
       this.users.push(newUser);
     }
+    return newUser;
   }
 
   async getUserById(userId: User['userId']): Promise<User | 'Not Exists'> {

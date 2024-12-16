@@ -11,12 +11,14 @@ import {
   UserSchema,
   ServerToClientEventsSchema,
   ClientToServerEventsSchema,
+  QueueSchema,
 } from '../schemas/chat.schema';
 
 export type UserId = z.infer<typeof UserIdSchema>;
 export type UserName = z.infer<typeof UserNameSchema>;
 export type SocketId = z.infer<typeof SocketIdSchema>;
 export type User = z.infer<typeof UserSchema>;
+export type Queue = z.infer<typeof QueueSchema>;
 
 export type RoomName = z.infer<typeof RoomNameSchema>;
 export type Room = z.infer<typeof RoomSchema>;

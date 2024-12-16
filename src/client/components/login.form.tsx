@@ -9,7 +9,7 @@ import {
   EmailSchema,
   MembersNumberSchema,
 } from '../../shared/schemas/chat.schema';
-import { generateUserId, setUser } from '../lib/user';
+import { generateRoomName, generateUserId, setUser } from '../lib/user';
 import { User } from '../../shared/interfaces/chat.interface';
 
 const formSchema = z.object({
@@ -48,7 +48,7 @@ export const LoginForm = ({
       email: data.email,
     };
     setUser(newUser);
-    onSubmitSecondary(data);
+    onSubmitSecondary({ ...data, roomName: generateRoomName() });
   };
 
   return (
@@ -74,9 +74,9 @@ export const LoginForm = ({
           id="email"
           required={!disableNewRoom}
           disabled={disableNewRoom}
-          minLength={RoomNameSchema?.minLength ?? undefined}
-          maxLength={RoomNameSchema?.maxLength ?? undefined}
-          pattern={RoomNameSchemaRegex.source.toString()}
+          minLength={EmailSchema?.minLength ?? undefined}
+          maxLength={EmailSchema?.maxLength ?? undefined}
+          // pattern={EmailSchema.source.toString()}
           placeholder="Email"
           {...register('email')}
           className="h-12 rounded-md border border-slate-400 bg-gray-800 text-white placeholder-slate-400 invalid:text-pink-600 invalid:ring-pink-600 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:invalid:border-pink-600 focus:invalid:ring-pink-600 disabled:opacity-50"
@@ -87,12 +87,11 @@ export const LoginForm = ({
           id="membersNumber"
           required={!disableNewRoom}
           disabled={disableNewRoom}
-          minLength={RoomNameSchema?.minLength ?? undefined}
-          maxLength={RoomNameSchema?.maxLength ?? undefined}
-          pattern={RoomNameSchemaRegex.source.toString()}
+          minLength={1}
+          maxLength={2}
           placeholder="На сколько человек чат?"
           {...register('membersNumber')}
-          defaultValue={1}
+          defaultValue={2}
           className="h-12 rounded-md border border-slate-400 bg-gray-800 text-white placeholder-slate-400 invalid:text-pink-600 invalid:ring-pink-600 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:invalid:border-pink-600 focus:invalid:ring-pink-600 disabled:opacity-50"
         ></input>
         <p className="py-1 text-sm text-pink-600">

@@ -26,12 +26,14 @@ import { UserService } from '../user/user.service';
 import { ChatPoliciesGuard } from './guards/chat.guard';
 import { WsThrottlerGuard } from './guards/throttler.guard';
 import { Throttle } from '@nestjs/throttler';
+import { ChatService } from './chat.service';
 
 @WebSocketGateway({})
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private roomService: RoomService,
     private userService: UserService,
+    private chatService: ChatService,
   ) {}
 
   @WebSocketServer() server: Server = new Server<
@@ -63,8 +65,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ): Promise<boolean> {
     this.logger.log(`${payload.user.socketId} is joining ${payload.roomName}`);
     await this.userService.addUser(payload.user);
-    await this.server.in(payload.user.socketId).socketsJoin(payload.roomName);
-    await this.roomService.addUserToRoom(payload.roomName, payload.user.userId);
+    await this.chatService.joinRoom(
+      payload.user.userId,
+      payload.user.email,
+      payload.user.userName,
+      payload.roomName,
+      payload.membersNumber,
+      payload.user.socketId,
+    );
+    // await this.server.in(payload.user.socketId).socketsJoin(payload.roomName);
+    // await this.roomService.addUserToRoom(payload.roomName, payload.user.userId);
     return true;
   }
 
@@ -105,5 +115,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     await this.roomService.removeUserFromAllRooms(socket.id);
     this.logger.log(`Socket disconnected: ${socket.id}`);
+  }
+
+  async joinRoom(socketId: string, roomName: string): Promise<void> {
+    if (!this.server.sockets.sockets.get(socketId)) {
+      console.error(
+        `[joinRoom] Socket ID ${socketId} not connected. Skipping.`,
+      );
+    }
+    await this.server.in(socketId).socketsJoin(roomName);
+    await this.server.in(socketId).emit('room_name', { roomName });
   }
 }

@@ -8,13 +8,14 @@ import {
   ClientToServerEvents,
   KickUser,
   JoinRoom,
+  Room,
 } from '../../shared/interfaces/chat.interface';
 import { Header } from '../components/header';
 import { UserList } from '../components/list';
 import { MessageForm } from '../components/message.form';
 import { Messages, ClientMessage } from '../components/messages';
 import { ChatLayout } from '../layouts/chat.layout';
-import { unsetRoom, useRoomQuery } from '../lib/room';
+import { unsetRoom, useRoomQuery, useUserRoomQuery } from '../lib/room';
 import { getUser } from '../lib/user';
 import {
   ChatMessageSchema,
@@ -30,30 +31,31 @@ const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io({
 
 function Chat() {
   const {
-    data: { user, roomName },
+    data: { user, roomName, membersNumber },
   } = useMatch<ChatLocationGenerics>();
 
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [isJoinedRoom, setIsJoinedRoom] = useState(false);
   const [isJoiningDelay, setIsJoiningDelay] = useState(false);
   const [messages, setMessages] = useState<ClientMessage[]>([]);
-  const [toggleUserList, setToggleUserList] = useState<boolean>(false);
-
+  const [toggleUserList, setToggleUserList] = useState(false);
+  const [roomNameResult, setRoomNameResult] = useState<string | null>(null);
   const { data: room, refetch: roomRefetch } = useRoomQuery(
-    roomName,
+    roomNameResult,
     isConnected,
   );
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user || !roomName) {
+    if (!user || !membersNumber || !roomName) {
       navigate({ to: '/', replace: true });
     } else {
       socket.on('connect', () => {
         setIsJoiningDelay(true);
         const joinRoom: JoinRoom = {
-          roomName,
+          roomName: roomName,
+          membersNumber,
           user: { socketId: socket.id, ...user },
           eventName: 'join_room',
         };
@@ -62,14 +64,16 @@ function Chat() {
           // default required 800 ms minimum join delay to prevent flickering
           setIsJoiningDelay(false);
         }, 800);
-        socket.timeout(30000).emit('join_room', joinRoom, (err, response) => {
-          if (err) {
-            leaveRoom();
-          }
-          if (response) {
-            setIsJoinedRoom(true);
-          }
-        });
+        socket
+          .timeout(30000)
+          .emit('join_room', joinRoom as any, (err, response) => {
+            if (err) {
+              leaveRoom();
+            }
+            if (response) {
+              // setIsJoinedRoom(true);
+            }
+          });
         setIsConnected(true);
       });
 
@@ -89,6 +93,16 @@ function Chat() {
         }
       });
 
+      socket.on('room_name', (data: any) => {
+        console.log('--here--', data);
+
+        if (data?.roomName) {
+          setRoomNameResult(data.roomName);
+          setIsJoinedRoom(true);
+          roomRefetch();
+        }
+      });
+
       socket.connect();
     }
     return () => {
@@ -96,6 +110,7 @@ function Chat() {
       socket.off('disconnect');
       socket.off('chat');
       socket.off('kick_user');
+      socket.off('room_name');
     };
   }, []);
 
@@ -106,16 +121,17 @@ function Chat() {
   };
 
   const sendMessage = (message: string) => {
-    if (user && socket && roomName) {
+    if (user && socket && roomNameResult) {
       const chatMessage: Message = {
         user: {
           userId: user.userId,
           userName: user.userName,
+          email: user.email,
           socketId: socket.id,
         },
         timeSent: Date.now(),
         message,
-        roomName: roomName,
+        roomName: roomNameResult,
         eventName: 'chat',
       };
       ChatMessageSchema.parse(chatMessage);
@@ -135,7 +151,7 @@ function Chat() {
               }
             });
             if (previousMessageIndex === -1) {
-              throw 'Previously sent message not found to update delivered status';
+              throw new Error('[Chat] Previously sent message not found.');
             }
             messages[previousMessageIndex] = {
               ...messages[previousMessageIndex],
@@ -149,21 +165,22 @@ function Chat() {
   };
 
   const kickUser = (userToKick: User) => {
-    if (!room) {
-      throw 'No room';
+    if (!roomNameResult) {
+      throw new Error('[Chat] No room name available.');
     }
     if (!user) {
-      throw 'No current user';
+      throw new Error('[Chat] No current user available.');
     }
     const kickUserData: KickUser = {
       user: { ...user, socketId: socket.id },
-      userToKick: userToKick,
-      roomName: room.name,
+      userToKick,
+      roomName: roomNameResult,
       eventName: 'kick_user',
     };
     KickUserSchema.parse(kickUserData);
     socket.emit('kick_user', kickUserData, (response) => {
       if (response) {
+        console.log('[Chat] User kicked successfully.');
         roomRefetch();
       }
     });
@@ -171,31 +188,39 @@ function Chat() {
 
   return (
     <>
-      {user?.userId && roomName && room && isJoinedRoom && !isJoiningDelay ? (
+      {user?.userId &&
+      room &&
+      roomNameResult &&
+      isJoinedRoom &&
+      !isJoiningDelay ? (
         <ChatLayout>
           <Header
             isConnected={isConnected}
-            users={room?.users ?? []}
-            roomName={roomName}
+            users={room.users ?? []}
+            roomName={roomNameResult}
             handleUsersClick={() =>
               setToggleUserList((toggleUserList) => !toggleUserList)
             }
-            handleLeaveRoom={() => leaveRoom()}
-          ></Header>
+            handleLeaveRoom={leaveRoom}
+          />
           {toggleUserList ? (
             <UserList
               room={room}
               currentUser={{ socketId: socket.id, ...user }}
               kickHandler={kickUser}
-            ></UserList>
+            />
           ) : (
-            <Messages user={user} messages={messages}></Messages>
+            <Messages user={user} messages={messages} />
           )}
-          <MessageForm sendMessage={sendMessage}></MessageForm>
+          <MessageForm sendMessage={sendMessage} />
         </ChatLayout>
       ) : (
         <LoadingLayout>
-          <Loading message={`Joining ${roomName}`}></Loading>
+          <Loading
+            message={`Joining ${
+              roomNameResult || roomName || 'room'
+            } with ${membersNumber} members...`}
+          />
         </LoadingLayout>
       )}
     </>
@@ -205,15 +230,17 @@ function Chat() {
 export const loader = async () => {
   const user = getUser();
   return {
-    user: user,
+    user,
     roomName: sessionStorage.getItem('room'),
+    membersNumber: sessionStorage.getItem('membersNumber'),
   };
 };
 
 type ChatLocationGenerics = MakeGenerics<{
   LoaderData: {
-    user: Pick<User, 'userId' | 'userName'>;
-    roomName: string;
+    user: Pick<User, 'userId' | 'userName' | 'email'>;
+    membersNumber: number;
+    roomName: Room['name'];
   };
 }>;
 

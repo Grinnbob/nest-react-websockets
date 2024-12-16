@@ -12,4 +12,5 @@ export class User implements UserType {
   userId: UserId;
   userName: UserName;
   socketId: SocketId;
+  email: string;
 }

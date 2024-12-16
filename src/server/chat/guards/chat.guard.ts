@@ -52,7 +52,7 @@ export class ChatPoliciesGuard<
 
     if (data.eventName === 'chat') {
       if (room === 'Not Exists') {
-        throw `Room must exist to evaluate ${data.eventName} policy`;
+        throw `Room ${data.roomName} must exist to evaluate ${data.eventName} policy`;
       }
       policyHandlers.push((ability) => ability.can(Action.Message, room));
     }
